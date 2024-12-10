@@ -3,54 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geolocation Path Visualization</title>
+    <title>Running Path Visualization</title>
     <style>
-        body {
+        body, html {
             margin: 0;
             padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: #121212;
-            color: #ffffff;
-            font-family: Arial, sans-serif;
-            height: 100vh;
-            overflow: hidden;
+            width: 100%;
+            height: 100%;
         }
-        #defaultCanvas0 {
-            display: block;
+        #map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none; /* 지도 상호작용을 방해하지 않음 */
         }
     </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
 </head>
 <body>
+    <div id="map"></div>
     <script>
-        let path = []; // 이동 경로를 저장할 배열
-        let isLocationLoaded = false;
+        let map;
+        let path = []; // 경로 데이터
+        let userMarker;
 
         function setup() {
-            createCanvas(800, 600);
-            textAlign(CENTER, CENTER);
-            textSize(16);
+            createCanvas(windowWidth, windowHeight);
+            noFill();
 
+            // Leaflet.js 지도 생성
+            map = L.map('map').setView([37.5665, 126.9780], 15); // 기본 위치: 서울
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Geolocation으로 사용자 위치 추적
             if (navigator.geolocation) {
                 navigator.geolocation.watchPosition(
-                    (position) => {
-                        const latitude = position.coords.latitude;
-                        const longitude = position.coords.longitude;
-                        const accuracy = position.coords.accuracy;
-                        isLocationLoaded = true;
-
-                        // 경로 데이터 저장
-                        path.push({
-                            latitude: latitude,
-                            longitude: longitude,
-                            accuracy: accuracy,
-                        });
-                    },
-                    (error) => {
-                        console.error("위치 정보를 가져올 수 없습니다.", error);
-                    },
+                    updatePosition,
+                    (error) => console.error("위치 정보를 가져올 수 없습니다.", error),
                     {
                         enableHighAccuracy: true,
                     }
@@ -60,40 +60,41 @@
             }
         }
 
+        function updatePosition(position) {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+
+            // 경로에 추가
+            path.push([latitude, longitude]);
+
+            // 지도에 사용자 마커 추가 또는 업데이트
+            if (!userMarker) {
+                userMarker = L.marker([latitude, longitude]).addTo(map);
+                map.setView([latitude, longitude], 15); // 사용자의 위치로 맵 중심 이동
+            } else {
+                userMarker.setLatLng([latitude, longitude]);
+            }
+        }
+
         function draw() {
-            background(30);
+            clear(); // 캔버스 초기화
 
-            if (isLocationLoaded && path.length > 1) {
-                noFill();
-                stroke(0, 200, 100);
-                strokeWeight(2);
+            if (path.length > 1) {
+                stroke(255, 0, 0);
+                strokeWeight(3);
 
-                // 경로를 선으로 그리기
+                // 이동 경로를 선으로 시각화
                 beginShape();
-                for (let point of path) {
-                    const x = map(point.longitude, -180, 180, 0, width);
-                    const y = map(point.latitude, 90, -90, 0, height);
-                    vertex(x, y);
+                for (let coord of path) {
+                    const point = map.latLngToContainerPoint(L.latLng(coord[0], coord[1]));
+                    vertex(point.x, point.y);
                 }
                 endShape();
-
-                // 마지막 위치 표시
-                const lastPoint = path[path.length - 1];
-                fill(255, 0, 0);
-                const lastX = map(lastPoint.longitude, -180, 180, 0, width);
-                const lastY = map(lastPoint.latitude, 90, -90, 0, height);
-                ellipse(lastX, lastY, 10, 10);
-
-                fill(255);
-                text(
-                    `현재 위치\n위도: ${lastPoint.latitude.toFixed(4)}\n경도: ${lastPoint.longitude.toFixed(4)}\n정확도: ${lastPoint.accuracy.toFixed(1)}m`,
-                    width / 2,
-                    height - 50
-                );
-            } else {
-                fill(255);
-                text("위치 데이터를 불러오는 중...", width / 2, height / 2);
             }
+        }
+
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
         }
     </script>
 </body>
