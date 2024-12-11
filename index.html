@@ -33,7 +33,7 @@
     <div id="map"></div>
     <script>
         let map;
-        let path = []; // 경로 데이터
+        let path = []; // 이동 경로를 저장할 배열
         let userMarker;
 
         function setup() {
@@ -51,9 +51,7 @@
                 navigator.geolocation.watchPosition(
                     updatePosition,
                     (error) => console.error("위치 정보를 가져올 수 없습니다.", error),
-                    {
-                        enableHighAccuracy: true,
-                    }
+                    { enableHighAccuracy: true }
                 );
             } else {
                 console.error("Geolocation API를 지원하지 않는 브라우저입니다.");
@@ -81,12 +79,12 @@
 
             if (path.length > 1) {
                 stroke(255, 0, 0);
-                strokeWeight(3);
+                strokeWeight(2);
 
                 // 이동 경로를 선으로 시각화
                 beginShape();
                 for (let coord of path) {
-                    const point = map.latLngToContainerPoint(L.latLng(coord[0], coord[1]));
+                    const point = map.latLngToContainerPoint(L.latLng(coord[0], coord[1])); // 지도 좌표를 캔버스 좌표로 변환
                     vertex(point.x, point.y);
                 }
                 endShape();
