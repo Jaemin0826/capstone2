@@ -1,101 +1,157 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Running Path Visualization</title>
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-        }
-        #map {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0; /* 지도는 아래에 위치 */
-        }
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            pointer-events: none; /* 지도의 상호작용을 방해하지 않음 */
-            z-index: 1; /* 캔버스를 지도의 위로 올림 */
-        }
-    </style>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.js"></script>
+  <meta charset="UTF-8">
+  <title>Sketchfab Viewer</title>
+  <style>
+    body { 
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100vw;
+        height: 100vh;
+        background-color: #fff;
+    }
+    #api-frame {
+        width: 402px;
+        height: 874px;
+        border: none;
+        position: relative;
+        z-index: 1;
+    }
+
+    .header {
+        width: 402px;
+        height: 72px;
+        background-color: #f3f3f3;
+        position: absolute;
+        top: calc(50% - 437px); /* (874 / 2) */
+        left: calc(50% - 201px); /* (402 / 2) */
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-family: sans-serif;
+    }
+
+
+    .navigationBar {
+        width: 402px;
+        height: 72px;
+        background-color: #f3f3f3;
+        position: absolute;
+        bottom: calc(50% - 437px); /* (874 / 2) */
+        left: calc(50% - 201px); /* (402 / 2) */
+        z-index: 11;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-family: sans-serif;
+    }
+
+    .modalBar {
+        width: 402px;
+        height: 72px;
+        position: absolute;
+        bottom: calc(50% - 365px); /* (874 / 2) */
+        left: calc(50% - 201px); /* (402 / 2) */
+        z-index: 11;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        font-weight: bold;
+        font-family: sans-serif;
+    }
+
+    button{
+      width: 64px;
+      padding: 12px;
+
+    }
+  </style>
 </head>
 <body>
-    <div id="map"></div>
-    <script>
-        let map;
-        let path = []; // 이동 경로를 저장할 배열
-        let userMarker;
 
-        function setup() {
-            createCanvas(windowWidth, windowHeight);
-            noFill();
+<iframe
+  id="api-frame"
+  allow="autoplay; fullscreen; xr-spatial-tracking"
+  allowfullscreen
+  mozallowfullscreen="true"
+  webkitallowfullscreen="true">
+</iframe>
 
-            // Leaflet.js 지도 생성
-            map = L.map('map').setView([37.5665, 126.9780], 15); // 기본 위치: 서울
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map);
+<div class="header"></div>
+<div class="navigationBar"></div>
+<div class="modalBar">
+  <button onclick="goToHead()">비둘기</button>
+  <button onclick="goToLeg()">사슴</button>
+  <button onclick="goToBut()">벚꽃</button>
+  <button onclick="goToSo()">소나무</button>
+</div>
 
-            // Geolocation으로 사용자 위치 추적
-            if (navigator.geolocation) {
-                navigator.geolocation.watchPosition(
-                    updatePosition,
-                    (error) => console.error("위치 정보를 가져올 수 없습니다.", error),
-                    { enableHighAccuracy: true }
-                );
-            } else {
-                console.error("Geolocation API를 지원하지 않는 브라우저입니다.");
-            }
-        }
+<script src="https://static.sketchfab.com/api/sketchfab-viewer-1.12.1.js"></script>
+<script src="https://static.sketchfab.com/api/sketchfab-viewer-1.12.1.js"></script>
+<script src="https://static.sketchfab.com/api/sketchfab-viewer-1.12.1.js"></script>
+<script>
+  const iframe = document.getElementById('api-frame');
+  const client = new Sketchfab('1.12.1', iframe);
+  const modelUID = '8bb6749a0a214cbb952b6e3a185d7765';
 
-        function updatePosition(position) {
-            const latitude = position.coords.latitude;
-            const longitude = position.coords.longitude;
+  let api = null;
 
-            // 경로에 추가
-            path.push([latitude, longitude]);
+  client.init(modelUID, {
+    autostart: 1,
+    preload: 1,
+    ui_controls: 0,
+    ui_infos: 0,
+    ui_hint: 0,
+    ui_watermark: 0,
+    success: function(_api) {
+      api = _api;
 
-            // 지도에 사용자 마커 추가 또는 업데이트
-            if (!userMarker) {
-                userMarker = L.marker([latitude, longitude]).addTo(map);
-                map.setView([latitude, longitude], 15); // 사용자의 위치로 맵 중심 이동
-            } else {
-                userMarker.setLatLng([latitude, longitude]);
-            }
-        }
+      api.start();
+      api.addEventListener('viewerready', function() {
+        console.log('✅ Sketchfab Viewer 준비 완료!');
+      });
+    },
+    error: function() {
+      console.error('❌ Sketchfab API 초기화 실패');
+    }
+  });
 
-        function draw() {
-            clear(); // 캔버스 초기화
+  // 버튼 이벤트 함수
+  function goToHead() {
+    if (api) {
+      api.gotoAnnotation(0);
+    }
+  }
 
-            if (path.length > 1) {
-                stroke(255, 151, 61 ,200);
-                strokeWeight(3);
+  function goToLeg() {
+    if (api) {
+      api.gotoAnnotation(1);
+    }
+  }
 
-                // 이동 경로를 선으로 시각화
-                beginShape();
-                for (let coord of path) {
-                    const point = map.latLngToContainerPoint(L.latLng(coord[0], coord[1])); // 지도 좌표를 캔버스 좌표로 변환
-                    vertex(point.x, point.y);
-                }
-                endShape();
-            }
-        }
+  function goToSo() {
+    if (api) {
+      api.gotoAnnotation(3);
+    }
+  }
 
-        function windowResized() {
-            resizeCanvas(windowWidth, windowHeight);
-        }
-    </script>
+  function goToBut() {
+    if (api) {
+      api.gotoAnnotation(2);
+    }
+  }
+</script>
+
+
+
 </body>
 </html>
+
+
